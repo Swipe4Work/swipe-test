@@ -207,7 +207,9 @@ table.cmp{border-collapse:separate;border-spacing:8px 0;min-width:100%;font-size
 /* ---------- sheet & toast ---------- */
 .sheet-backdrop{position:absolute;inset:0;z-index:20;background:rgba(21,21,88,.55);display:flex;align-items:flex-end;animation:fade .2s}
 .sheet{width:100%;max-height:93%;background:var(--white);border-radius:28px 28px 0 0;display:flex;flex-direction:column;animation:up .3s var(--ease);overflow:hidden}
-.sheet-scroll{overflow-y:auto;flex:1;min-height:0}
+.sheet-scroll{overflow-y:auto;flex:1;min-height:0;overscroll-behavior:contain}
+.grabber{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:44px;height:5px;border-radius:9px;background:rgba(255,255,255,.95);box-shadow:0 1px 4px rgba(0,0,0,.35);z-index:2;cursor:grab}
+.sheet.small::before{content:"";width:44px;height:5px;border-radius:9px;background:rgba(21,21,88,.2);align-self:center;margin:-14px 0 2px}
 .sheet-hero{height:150px;background-size:cover;background-position:center;background-color:var(--turq);position:relative}
 .sheet-x{position:absolute;right:14px;top:14px;width:38px;height:38px;border-radius:50%;background:var(--white);display:grid;place-items:center;box-shadow:var(--shadow);z-index:2}
 .sheet-in{padding:18px 22px 10px;display:flex;flex-direction:column;gap:12px}

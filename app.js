@@ -105,6 +105,35 @@
   }
   function openSheet(html, cls = '') {
     sheetRoot.innerHTML = `<div class="sheet-backdrop"><div class="sheet ${cls}" role="dialog" aria-modal="true">${html}</div></div>`;
+    attachSheetDrag();
+  }
+  // Naar beneden vegen sluit het venster (app-gevoel). Alleen als de inhoud bovenaan staat.
+  function attachSheetDrag() {
+    const bd = $('.sheet-backdrop', sheetRoot), sh = $('.sheet', sheetRoot), sc = $('.sheet-scroll', sh);
+    let y0 = 0, dy = 0, t0 = 0, active = false, eligible = false;
+    const setY = v => { sh.style.transform = `translateY(${v}px)`; bd.style.background = `rgba(21,21,88,${(.55 * (1 - Math.min(1, v / sh.offsetHeight))).toFixed(3)})`; };
+    const start = y => { y0 = y; dy = 0; t0 = performance.now(); active = false; eligible = !sc || sc.scrollTop <= 0; sh.style.transition = 'none'; };
+    const move = (y, e) => {
+      dy = y - y0; if (!eligible) return;
+      if (dy > 0 && (active || dy > 6)) { active = true; if (e.cancelable) e.preventDefault(); setY(dy); }
+      else if (!active && dy < 0) eligible = false;
+    };
+    const end = () => {
+      sh.style.transition = 'transform .28s cubic-bezier(.17,.84,.44,1)';
+      if (active && (dy > 120 || dy / Math.max(1, performance.now() - t0) > .6)) {
+        setY(sh.offsetHeight); bd.style.transition = 'background .28s'; bd.style.background = 'rgba(21,21,88,0)'; setTimeout(closeSheet, 260);
+      } else { setY(0); bd.style.background = ''; }
+      active = false;
+    };
+    sh.addEventListener('touchstart', e => start(e.touches[0].clientY), { passive: true });
+    sh.addEventListener('touchmove', e => move(e.touches[0].clientY, e), { passive: false });
+    sh.addEventListener('touchend', end); sh.addEventListener('touchcancel', end);
+    sh.addEventListener('mousedown', e => { // muis: slepen vanaf de afbeelding of het handvat
+      if (e.button !== 0 || !e.target.closest('.sheet-hero, .grabber') || e.target.closest('button')) return;
+      start(e.clientY);
+      const mm = ev => move(ev.clientY, ev), mu = () => { window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); end(); };
+      window.addEventListener('mousemove', mm); window.addEventListener('mouseup', mu);
+    });
   }
   function closeSheet() { sheetRoot.innerHTML = ''; }
   const sheetOpen = () => !!sheetRoot.firstElementChild;
@@ -125,7 +154,7 @@
     }
     openSheet(`
       <div class="sheet-scroll">
-        <div class="sheet-hero" style="background-image:url(img/${v.img})"><button class="sheet-x" data-close aria-label="Sluiten">${I.x}</button></div>
+        <div class="sheet-hero" style="background-image:url(img/${v.img})"><span class="grabber"></span><button class="sheet-x" data-close aria-label="Sluiten">${I.x}</button></div>
         <div class="sheet-in">
           <span class="kicker">${esc(short(v.cat))}</span>
           <h1>${esc(v.title)}</h1>
