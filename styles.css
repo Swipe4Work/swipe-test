@@ -99,6 +99,7 @@ details.mod textarea{width:100%;height:150px;margin-top:10px;font:12px/1.4 ui-mo
 /* ---------- vacaturekaart (gedeeld) ---------- */
 .card{position:relative;display:flex;flex-direction:column;background:var(--white);border-radius:28px;overflow:hidden;
   box-shadow:var(--blur);touch-action:pan-y;user-select:none;-webkit-user-select:none;will-change:transform}
+.card,.item{cursor:pointer}
 .card.dragging{transition:none!important;cursor:grabbing}
 .card-media{flex:0 0 38%;background-size:cover;background-position:center;background-color:var(--turq);position:relative}
 .card-media::after{content:"";position:absolute;inset:auto 0 0 0;height:40%;background:linear-gradient(transparent,rgba(21,21,88,.35))}

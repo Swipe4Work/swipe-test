@@ -1,13 +1,13 @@
 # Swipe4Work – feed-prototype
 
-Prototype om te toetsen of een **feed met shortlist** prettiger voelt dan de huidige swipe-flow
+Prototype om te toetsen of een **feed met bewaarde vacatures** prettiger voelt dan de huidige swipe-flow
 (links "Niet geïnteresseerd" / rechts "Koffie doen" = direct solliciteren).
 
 De app bevat beide varianten, zodat je ze naast elkaar kunt testen:
 
 | Variant | URL | Wat doet de gebruiker? |
 |---|---|---|
-| **Feed** (nieuw) | `?v=feed` | Scrollt door vacatures, veegt interessante kaarten naar rechts = bewaren. Daarna shortlist: vergelijken (lijst of tabel, salarisbalken), weghalen, en pas dán bewust solliciteren. |
+| **Feed** (nieuw) | `?v=feed` | Scrollt door vacatures, veegt interessante kaarten naar rechts = bewaren. Daarna het tabblad *Bewaard*: vergelijken (lijst of tabel, salarisbalken), weghalen, en pas dán bewust solliciteren. |
 | **Swipe** (huidig) | `?v=swipe` | Links = niet interessant, rechts = "Koffie doen" (direct solliciteren). |
 
 Zonder parameter wordt een variant willekeurig (50/50) toegewezen. `?debug` toont welke variant je hebt.
@@ -24,7 +24,7 @@ Na afloop (knop **Klaar**) volgen vier vragen:
 Er staat bewust **geen teller of voortgangsbalk** in de app, anders zou je de schatting beïnvloeden.
 
 Per sessie wordt vastgelegd: variant, echt aantal gezien, schatting + afwijking, duur, mediane tijd per vacature,
-aantal keer details geopend, bewaard / weggehaald / gesolliciteerd, shortlist- en vergelijkweergaves,
+aantal keer details geopend, bewaard / weggehaald / gesolliciteerd, weergaves van het bewaard-overzicht en de vergelijking,
 swipes links/rechts, de antwoorden en een tijdlijn van alle acties (`events`).
 "Gezien" = in de feed minstens 350 ms ≥60% in beeld; in de swipe-variant elke vacature waarover een keuze is gemaakt.
 

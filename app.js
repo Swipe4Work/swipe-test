@@ -113,7 +113,7 @@
     let actions = '';
     if (ctx === 'feed') {
       actions = S.saved.includes(id)
-        ? `<button class="btn btn-ghost" data-close>Sluiten</button><button class="btn" disabled>${I.check.replace(/26/g, '16')} In je shortlist</button>`
+        ? `<button class="btn btn-ghost" data-close>Sluiten</button><button class="btn" disabled>${I.check.replace(/26/g, '16')} Bewaard</button>`
         : `<button class="btn btn-ghost" data-close>Sluiten</button><button class="btn btn-yellow" data-sheet="save" data-id="${id}">${I.bookmark.replace(/24/g, '16')} Bewaar</button>`;
     } else if (ctx === 'shortlist') {
       actions = S.applied.has(id)
@@ -196,6 +196,7 @@
       if (e.pointerId !== id) return; const wasX = lock === 'x'; id = null;
       if (!wasX) return;
       node.classList.remove('dragging');
+      node.dataset.dragged = 1; setTimeout(() => delete node.dataset.dragged, 120); // voorkomt dat een sleep als tik telt
       const v = dx / Math.max(1, performance.now() - t0);
       if (e.type !== 'pointercancel' && ((dx > threshold || (v > .6 && dx > 40)) && onRight)) { flyOut(node, 1, onRight); progress && progress(1); }
       else if (e.type !== 'pointercancel' && ((dx < -threshold || (v < -.6 && dx < -40)) && onLeft)) { flyOut(node, -1, onLeft); progress && progress(-1); }
@@ -242,7 +243,7 @@
         ${feed ? `
         <li><span class="ico">👆</span><span><b>Scroll door de vacatures</b> zoals je door een feed scrolt. Niet interessant? Dan scroll je gewoon verder.</span></li>
         <li><span class="ico">👉</span><span><b>Lijkt er één leuk?</b> Veeg de kaart naar rechts (of tik op het bladwijzer-icoon) om hem te bewaren.</span></li>
-        <li><span class="ico">📋</span><span>In je <b>shortlist</b> vergelijk je wat je bewaard hebt en solliciteer je pas als je het zeker weet.</span></li>` : `
+        <li><span class="ico">📋</span><span>Onder <b>Bewaard</b> vergelijk je je bewaarde vacatures en solliciteer je pas als je het zeker weet.</span></li>` : `
         <li><span class="ico">👈</span><span><b>Veeg naar links</b> als een vacature niet interessant is.</span></li>
         <li><span class="ico">☕</span><span><b>Veeg naar rechts</b> voor “Koffie doen”. Dat betekent dat je direct solliciteert.</span></li>
         <li><span class="ico">📄</span><span>Wil je eerst meer weten? Tik op <b>Lees meer</b> voor alle details.</span></li>`}
@@ -298,13 +299,13 @@
           <div class="card">
             ${cardInner(v, `<button class="save-btn" data-act="save" data-id="${id}" aria-label="Bewaar vacature">${I.bookmark}</button><span class="stamp stamp-yes">Bewaard</span>`)}
           </div>
-          <div class="saved-ph"><span class="tick">${I.check}</span><div><strong>${esc(v.title)}</strong><small>staat in je shortlist</small></div>
+          <div class="saved-ph"><span class="tick">${I.check}</span><div><strong>${esc(v.title)}</strong><small>staat onder Bewaard</small></div>
             <button class="link" data-act="undo" data-id="${id}">Ongedaan maken</button></div>
         </section>`;
       }).join('')}
       <section class="slide" data-end="1"><div class="end-card"><h2>Dat waren ze!</h2>
         <p>Je bent aan het einde van de vacatures gekomen.</p>
-        <button class="btn" data-act="to-shortlist">Bekijk je shortlist</button>
+        <button class="btn" data-act="to-shortlist">Bekijk je bewaarde vacatures</button>
         <button class="btn btn-ghost" data-act="finish">Klaar</button></div></section>
     </div>
     <div class="coach" id="coach"><span>↑ scroll door</span><span>·</span><span>veeg → om te bewaren</span></div>`;
@@ -333,7 +334,12 @@
   }
 
   function onFeedClick(e) {
-    const b = e.target.closest('[data-act]'); if (!b) return;
+    const b = e.target.closest('[data-act]');
+    if (!b) { // tik op de kaart zelf opent de details
+      const card = e.target.closest('.card'), sl = e.target.closest('.slide');
+      if (card && sl && sl.dataset.id && !card.dataset.dragged) detailsSheet(sl.dataset.id, 'feed');
+      return;
+    }
     const act = b.dataset.act, sl = b.closest('.slide');
     if (act === 'details') detailsSheet(b.dataset.id, 'feed');
     else if (act === 'save') saveSlide(sl, 'button');
@@ -385,7 +391,7 @@
     const applyBtn = v => S.applied.has(v.id) ? `<div class="applied">${I.check.replace(/26/g, '16')} Gesolliciteerd</div>`
       : `<button class="btn btn-small" data-act="apply" data-id="${v.id}">Solliciteer</button>`;
 
-    const head = `<div class="sl-head"><h1>Jouw shortlist</h1><p>${items.length ? `${items.length} bewaard${items.length > 1 ? 'e vacatures' : 'e vacature'}. Vergelijk ze en solliciteer op wat je écht wilt.` : ''}</p></div>`;
+    const head = `<div class="sl-head"><h1>Bewaarde vacatures</h1><p>${items.length ? `${items.length} bewaard${items.length > 1 ? 'e vacatures' : 'e vacature'}. Vergelijk ze en solliciteer op wat je écht wilt.` : ''}</p></div>`;
     let body;
     if (!items.length) {
       body = `<div class="empty"><div class="emoji">🔖</div><strong>Nog niets bewaard</strong>
@@ -398,7 +404,7 @@
         body = controls + list.map(v => `<article class="item" data-id="${v.id}">
           <div class="item-top"><div class="thumb" style="background-image:url(img/${v.img})"></div>
             <div style="min-width:0"><h3>${esc(v.title)}</h3><p class="loc" style="margin-top:4px">${I.pin}${esc(v.loc)}</p></div>
-            <button class="x" data-act="remove" data-id="${v.id}" aria-label="Verwijder uit shortlist">${I.x}</button></div>
+            <button class="x" data-act="remove" data-id="${v.id}" aria-label="Verwijder uit bewaard">${I.x}</button></div>
           ${salBlock(v)}
           <div class="item-meta"><span class="pill">${esc(v.hours)}</span><span class="pill">${esc(v.facts.Opleiding || '')}</span><span class="pill">${esc(v.facts.Ervaring || '')}</span></div>
           <div class="item-actions"><button class="btn btn-ghost btn-small" data-act="details" data-id="${v.id}">Details</button>${applyBtn(v)}</div>
@@ -422,7 +428,12 @@
     $$('.item', s).forEach(it => makeSwipe(it, { onLeft: () => removeFromShortlist(it.dataset.id), threshold: 110 }));
   }
   function onShortlistClick(e) {
-    const b = e.target.closest('[data-act]'); if (!b) return;
+    const b = e.target.closest('[data-act]');
+    if (!b) {
+      const it = e.target.closest('.item');
+      if (it && !it.dataset.dragged) detailsSheet(it.dataset.id, 'shortlist');
+      return;
+    }
     const a = b.dataset.act, id = b.dataset.id;
     if (a === 'view') { S.slView = b.dataset.v; renderShortlist(); }
     else if (a === 'sort') { S.sort = b.dataset.k; log('sort', { k: S.sort }); renderShortlist(); }
@@ -433,7 +444,7 @@
   }
   function removeFromShortlist(id) {
     unsave(id, 'remove'); renderShortlist();
-    toast('Weggehaald uit je shortlist', { label: 'Ongedaan maken', fn: () => resave(id) });
+    toast('Niet meer bewaard', { label: 'Ongedaan maken', fn: () => resave(id) });
   }
   function confirmApply(id) {
     const v = byId[id];
@@ -457,8 +468,13 @@
         <div class="deck-btn"><button class="round round-yes" data-act="yes" aria-label="Koffie doen">☕</button>Koffie doen</div>
       </div>`;
     s.onclick = e => {
-      const b = e.target.closest('[data-act]'); if (!b) return;
+      const b = e.target.closest('[data-act]');
       const top = $('#deck .card:not(.under)');
+      if (!b) {
+        const c = e.target.closest('#deck .card:not(.under)');
+        if (c && !c.dataset.dragged && !c.dataset.flying) detailsSheet(S.order[S.idx], 'deck');
+        return;
+      }
       if (b.dataset.act === 'details') detailsSheet(b.dataset.id, 'deck');
       else if (b.dataset.act === 'yes') flyOut(top, 1, () => decide('r'));
       else if (b.dataset.act === 'no') flyOut(top, -1, () => decide('l'));
