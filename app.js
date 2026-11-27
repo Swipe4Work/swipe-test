@@ -302,7 +302,7 @@
             <button class="link" data-act="undo" data-id="${id}">Ongedaan maken</button></div>
         </section>`;
       }).join('')}
-      <section class="slide"><div class="end-card"><h2>Dat waren ze!</h2>
+      <section class="slide" data-end="1"><div class="end-card"><h2>Dat waren ze!</h2>
         <p>Je bent aan het einde van de vacatures gekomen.</p>
         <button class="btn" data-act="to-shortlist">Bekijk je shortlist</button>
         <button class="btn btn-ghost" data-act="finish">Klaar</button></div></section>
@@ -311,11 +311,13 @@
     const feed = $('#feed');
     const io = new IntersectionObserver(entries => {
       for (const en of entries) {
+        if (en.target.dataset.end) { if (en.isIntersecting && !S.reachedEnd) { S.reachedEnd = true; log('reached_end'); } continue; }
         const id = en.target.dataset.id; if (!id) continue;
         if (en.isIntersecting && en.intersectionRatio >= .6) { visible.add(id); startDwell(id); }
         else { visible.delete(id); endDwell(id); }
       }
     }, { root: feed, threshold: [0, .6, 1] });
+    io.observe($('.slide[data-end]', feed));
     $$('.slide[data-id]', feed).forEach(sl => {
       io.observe(sl);
       const card = $('.card', sl), reveal = $('.reveal', sl), stamp = $('.stamp', sl);
@@ -468,7 +470,7 @@
     const deck = $('#deck'); deck.innerHTML = '';
     if (S.idx >= S.order.length) {
       deck.innerHTML = `<div class="end-card"><h2>Dat waren ze!</h2><p>Je bent aan het einde van de vacatures gekomen.</p><button class="btn" data-act="finish">Klaar</button></div>`;
-      $('.deck-actions').hidden = true; return;
+      $('.deck-actions').hidden = true; S.reachedEnd = true; log('reached_end'); return;
     }
     const mk = (id, under) => {
       const el = document.createElement('div'); el.className = 'card' + (under ? ' under' : '');
@@ -501,6 +503,22 @@
   }
   function goSurvey() {
     pauseDwell(); S.tEnd = Date.now(); log('finish'); toastEl.classList.remove('show');
+    const ap = [...S.applied].map(id => byId[id]);
+    const s = screen('summary'); s.classList.add('scroll');
+    s.innerHTML = `<div class="page">
+      <div><span class="kicker">Jouw resultaat</span><h1 style="margin-top:8px">${ap.length ? 'Zo ging het' : 'Je hebt niet gesolliciteerd'}</h1></div>
+      <div class="result-box">
+        <span class="big">${ap.length}</span>
+        <p style="font-weight:700">${ap.length === 1 ? 'sollicitatie' : 'sollicitaties'}${S.variant === 'feed' ? ` · ${S.saved.length} vacature${S.saved.length === 1 ? '' : 's'} bewaard` : ''}</p>
+        ${ap.length ? `<ul class="applied-list">${ap.map(v => `<li><b>${esc(v.title)}</b><span>${esc(v.loc)} · ${esc(v.salary)}</span></li>`).join('')}</ul>` : '<p class="fine">Je hebt op geen enkele vacature gesolliciteerd.</p>'}
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-block" id="toSurvey">Verder met de vragen ${I.arrow}</button>
+    </div>`;
+    show('summary'); s.scrollTop = 0;
+    $('#toSurvey').onclick = renderSurvey;
+  }
+  function renderSurvey() {
     const s = screen('survey'); s.classList.add('scroll');
     const scale = (name, lo, hi) => `<div class="scale">${[1, 2, 3, 4, 5].map(n => `<label><input type="radio" name="${name}" value="${n}" required><span>${n}</span></label>`).join('')}</div>
       <div class="scale-ends"><span>${lo}</span><span>${hi}</span></div>`;
@@ -529,7 +547,7 @@
     return {
       pid: S.pid, variant: S.variant, startedAt: new Date(S.t0).toISOString(),
       durationSec: Math.round(((S.tEnd || Date.now()) - S.t0) / 1000), vacanciesAvailable: ALL.length,
-      seen, estimate: est, estimateError: est - seen, estimateErrorPct: seen ? Math.round(100 * (est - seen) / seen) : null,
+      seen, stoppedEarly: !S.reachedEnd, seenPctOfAvailable: Math.round(100 * seen / ALL.length), estimate: est, estimateError: est - seen, estimateErrorPct: seen ? Math.round(100 * (est - seen) / seen) : null,
       medianMsPerVacancy: Math.round(median(dwellVals)),
       detailOpens: S.detailOpens,
       saved: S.variant === 'feed' ? S.saved.length : null,
@@ -542,7 +560,7 @@
       events: S.events
     };
   }
-  const CSV_COLS = ['pid', 'variant', 'startedAt', 'durationSec', 'seen', 'estimate', 'estimateError', 'estimateErrorPct', 'medianMsPerVacancy', 'detailOpens', 'saved', 'removedFromShortlist', 'shortlistViews', 'compareViews', 'swipeLeft', 'swipeRight', 'applied', 'light', 'pressure', 'pleasant', 'comment'];
+  const CSV_COLS = ['pid', 'variant', 'startedAt', 'durationSec', 'vacanciesAvailable', 'seen', 'stoppedEarly', 'seenPctOfAvailable', 'estimate', 'estimateError', 'estimateErrorPct', 'medianMsPerVacancy', 'detailOpens', 'saved', 'removedFromShortlist', 'shortlistViews', 'compareViews', 'swipeLeft', 'swipeRight', 'applied', 'light', 'pressure', 'pleasant', 'comment'];
   const toCSV = rows => [CSV_COLS.join(',')].concat(rows.map(r => CSV_COLS.map(c => { const v = r[c] ?? ''; return /[",\n;]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : v; }).join(','))).join('\n');
   function download(name, text, type) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
@@ -557,17 +575,9 @@
   function renderThanks(r, all) {
     const s = screen('thanks'); s.classList.add('scroll');
     const json = JSON.stringify(r, null, 2);
-    const ap = [...S.applied].map(id => byId[id]);
     const other = S.variant === 'feed' ? 'swipe' : 'feed';
     s.innerHTML = `<div class="page">
       <div><span class="kicker">Dankjewel!</span><h1 style="margin-top:8px">Je antwoorden zijn opgeslagen</h1></div>
-      <div class="result-box">
-        <span class="kicker">Jouw inzet</span>
-        <span class="big">${ap.length}</span>
-        <p style="font-weight:700">${ap.length === 1 ? 'sollicitatie' : 'sollicitaties'}${S.variant === 'feed' ? ` · ${S.saved.length} vacature${S.saved.length === 1 ? '' : 's'} bewaard` : ''}</p>
-        <p class="fine">${ap.length ? `Op ${ap.length} van de ${r.seen} vacatures die je zag, heb je gesolliciteerd (test):` : `Je hebt op geen van de ${r.seen} vacatures die je zag gesolliciteerd.`}</p>
-        ${ap.length ? `<ul class="applied-list">${ap.map(v => `<li><b>${esc(v.title)}</b><span>${esc(v.loc)} · ${esc(v.salary)}</span></li>`).join('')}</ul>` : ''}
-      </div>
       <p>Even ter vergelijking: je schatte dat je er <b>${r.estimate}</b> had gezien.</p>
       <div class="pair">
         <div class="result-box"><span class="kicker">Jouw schatting</span><span class="big">${r.estimate}</span></div>
@@ -575,7 +585,7 @@
       </div>
       <p class="fine">Hoe dichter die twee bij elkaar liggen, hoe beter je overzicht hield.</p>
       <details class="mod"><summary>Voor de testleider: resultaten</summary>
-        <p class="fine" style="margin-top:8px">Variant: <b>${r.variant}</b> · ${all.length} sessie(s) opgeslagen in deze browser${CFG.endpoint ? ' · ook verstuurd naar het ingestelde endpoint' : ''}.</p>
+        <p class="fine" style="margin-top:8px"><b>${r.stoppedEarly ? `Afgehaakt na ${r.seen} van ${r.vacanciesAvailable} vacatures (${r.seenPctOfAvailable}%)` : `Alle ${r.vacanciesAvailable} vacatures bekeken`}</b><br>Variant: <b>${r.variant}</b> · ${all.length} sessie(s) opgeslagen in deze browser${CFG.endpoint ? ' · ook verstuurd naar het ingestelde endpoint' : ''}.</p>
         <textarea readonly id="jsonBox">${esc(json)}</textarea>
         <div class="row-btns">
           <button class="btn btn-small btn-ghost" id="dlJson" type="button">Download JSON</button>
