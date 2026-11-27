@@ -63,12 +63,13 @@
 
   const S = {
     pid: 'p' + Math.random().toString(36).slice(2, 8), variant, t0: 0, view: 'intro',
-    order: [], seen: new Set(), dwell: {}, saved: [], applied: new Set(), removedCount: 0,
+    order: [], seen: new Set(), dwell: {}, saved: [], applied: new Set(), appliedAll: [], removedCount: 0,
     decided: [], idx: 0, shownAt: 0, events: [],
     detailOpens: 0, shortlistViews: 0, compareViews: 0, slView: 'list', sort: 'saved'
   };
   window.__S = S; // handig bij testen
   const log = (type, data = {}) => S.events.push({ t: S.t0 ? Date.now() - S.t0 : 0, type, ...data });
+  const noteApplied = id => { S.applied.add(id); if (!S.appliedAll.includes(id)) S.appliedAll.push(id); };
   const seenCount = () => S.variant === 'feed' ? S.seen.size : S.decided.length;
 
   /* ---------- dom refs ---------- */
@@ -452,7 +453,7 @@
       <p>In de echte app verstuurt je hiermee je profiel direct naar de werkgever. In deze test wordt er niets verstuurd.</p>
       <div class="sheet-actions"><button class="btn btn-ghost" data-close>Nog niet</button><button class="btn btn-yellow" id="applyYes">Ja, solliciteer</button></div>`, 'small');
     $('#applyYes').onclick = () => {
-      closeSheet(); S.applied.add(id); log('apply', { id, via: 'shortlist', savedCount: S.saved.length });
+      closeSheet(); noteApplied(id); log('apply', { id, via: 'shortlist', savedCount: S.saved.length });
       vibrate(20); toast('☕ Gesolliciteerd (test)'); renderShortlist();
     };
   }
@@ -505,7 +506,7 @@
     const id = S.order[S.idx]; if (!id) return;
     S.decided.push({ id, dir, ms: Math.round(performance.now() - S.shownAt) });
     log(dir === 'r' ? 'swipe_right' : 'swipe_left', { id });
-    if (dir === 'r') { S.applied.add(id); vibrate(20); toast('☕ Gesolliciteerd (test)'); }
+    if (dir === 'r') { noteApplied(id); vibrate(20); toast('☕ Gesolliciteerd (test)'); }
     S.idx++; updateDone(); renderDeck();
   }
 
@@ -519,20 +520,29 @@
   }
   function goSurvey() {
     pauseDwell(); S.tEnd = Date.now(); log('finish'); toastEl.classList.remove('show');
-    const ap = [...S.applied].map(id => byId[id]);
-    const s = screen('summary'); s.classList.add('scroll');
+    screen('summary').classList.add('scroll');
+    renderSummary(); show('summary'); screen('summary').scrollTop = 0;
+  }
+  function renderSummary() {
+    const s = screen('summary'), all = S.appliedAll.map(id => byId[id]), n = S.applied.size;
     s.innerHTML = `<div class="page">
-      <div><span class="kicker">Jouw resultaat</span><h1 style="margin-top:8px">${ap.length ? 'Zo ging het' : 'Je hebt niet gesolliciteerd'}</h1></div>
+      <div><span class="kicker">Jouw resultaat</span><h1 style="margin-top:8px">${all.length ? 'Zo ging het' : 'Je hebt niet gesolliciteerd'}</h1></div>
       <div class="result-box">
-        <span class="big">${ap.length}</span>
-        <p style="font-weight:700">${ap.length === 1 ? 'sollicitatie' : 'sollicitaties'}${S.variant === 'feed' ? ` · ${S.saved.length} vacature${S.saved.length === 1 ? '' : 's'} bewaard` : ''}</p>
-        ${ap.length ? `<ul class="applied-list">${ap.map(v => `<li><b>${esc(v.title)}</b><span>${esc(v.loc)} · ${esc(v.salary)}</span></li>`).join('')}</ul>` : '<p class="fine">Je hebt op geen enkele vacature gesolliciteerd.</p>'}
+        <span class="big">${n}</span>
+        <p style="font-weight:700">${n === 1 ? 'sollicitatie' : 'sollicitaties'}${S.variant === 'feed' ? ` · ${S.saved.length} vacature${S.saved.length === 1 ? '' : 's'} bewaard` : ''}</p>
+        ${all.length ? `<p class="fine">Toch liever niet? Je kunt een sollicitatie hier nog intrekken.</p>
+        <ul class="applied-list">${all.map(v => { const on = S.applied.has(v.id); return `<li class="${on ? '' : 'off'}"><div><b>${esc(v.title)}</b><span>${esc(v.loc)} · ${esc(v.salary)}</span></div>
+          <button class="btn btn-small ${on ? 'btn-ghost' : ''}" data-withdraw="${v.id}">${on ? 'Intrekken' : 'Toch solliciteren'}</button></li>`; }).join('')}</ul>` : '<p class="fine">Je hebt op geen enkele vacature gesolliciteerd.</p>'}
       </div>
       <div class="spacer"></div>
       <button class="btn btn-block" id="toSurvey">Verder met de vragen ${I.arrow}</button>
     </div>`;
-    show('summary'); s.scrollTop = 0;
     $('#toSurvey').onclick = renderSurvey;
+    $$('[data-withdraw]', s).forEach(b => b.onclick = () => {
+      const id = b.dataset.withdraw;
+      if (S.applied.has(id)) { S.applied.delete(id); log('withdraw', { id }); } else { S.applied.add(id); log('unwithdraw', { id }); }
+      const top = s.scrollTop; renderSummary(); s.scrollTop = top;
+    });
   }
   function renderSurvey() {
     const s = screen('survey'); s.classList.add('scroll');
@@ -542,7 +552,7 @@
       <div><span class="kicker">Bijna klaar</span><h1 style="margin-top:8px">Even terugkijken</h1></div>
       <fieldset><legend>Hoeveel vacatures denk je ongeveer gezien te hebben?</legend>
         <input class="field" type="number" name="estimate" min="0" max="9999" inputmode="numeric" placeholder="Jouw schatting" required></fieldset>
-      <fieldset><legend>Hoe tevreden ben je met jouw resultaat?</legend>${scale('satisfaction', 'Ontevreden', 'Tevreden')}</fieldset>
+      <fieldset><legend>${S.applied.size ? 'Hoe tevreden ben je met je sollicitaties?' : 'Hoe tevreden ben je dat je op niets hebt gesolliciteerd?'}</legend>${scale('satisfaction', 'Ontevreden', 'Tevreden')}</fieldset>
       <fieldset><legend>Hoe luchtig voelde het doorkijken van vacatures?</legend>${scale('light', 'Zwaar', 'Luchtig')}</fieldset>
       <fieldset><legend>Hoeveel druk voelde je om per vacature een keuze te maken?</legend>${scale('pressure', 'Geen druk', 'Veel druk')}</fieldset>
       <fieldset><legend>Hoe prettig vond je deze manier van vacatures bekijken?</legend>${scale('pleasant', 'Onprettig', 'Prettig')}</fieldset>
@@ -572,12 +582,13 @@
       shortlistViews: S.shortlistViews, compareViews: S.compareViews,
       swipeLeft: S.variant === 'swipe' ? S.decided.filter(d => d.dir === 'l').length : null,
       swipeRight: S.variant === 'swipe' ? S.decided.filter(d => d.dir === 'r').length : null,
-      applied: S.applied.size, appliedIds: [...S.applied].join(' '),
+      appliedInitial: S.appliedAll.length, withdrawn: S.appliedAll.length - S.applied.size,
+      applied: S.applied.size, appliedIds: [...S.applied].join(' '), withdrawnIds: S.appliedAll.filter(id => !S.applied.has(id)).join(' '),
       satisfaction: Number(a.satisfaction), light: Number(a.light), pressure: Number(a.pressure), pleasant: Number(a.pleasant), comment: (a.comment || '').trim(),
       events: S.events
     };
   }
-  const CSV_COLS = ['pid', 'variant', 'startedAt', 'durationSec', 'vacanciesAvailable', 'seen', 'stoppedEarly', 'seenPctOfAvailable', 'estimate', 'estimateError', 'estimateErrorPct', 'medianMsPerVacancy', 'detailOpens', 'saved', 'removedFromShortlist', 'shortlistViews', 'compareViews', 'swipeLeft', 'swipeRight', 'applied', 'satisfaction', 'light', 'pressure', 'pleasant', 'comment'];
+  const CSV_COLS = ['pid', 'variant', 'startedAt', 'durationSec', 'vacanciesAvailable', 'seen', 'stoppedEarly', 'seenPctOfAvailable', 'estimate', 'estimateError', 'estimateErrorPct', 'medianMsPerVacancy', 'detailOpens', 'saved', 'removedFromShortlist', 'shortlistViews', 'compareViews', 'swipeLeft', 'swipeRight', 'appliedInitial', 'withdrawn', 'applied', 'satisfaction', 'light', 'pressure', 'pleasant', 'comment'];
   const toCSV = rows => [CSV_COLS.join(',')].concat(rows.map(r => CSV_COLS.map(c => { const v = r[c] ?? ''; return /[",\n;]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : v; }).join(','))).join('\n');
   function download(name, text, type) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove();

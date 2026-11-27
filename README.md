@@ -17,7 +17,7 @@ Zonder parameter wordt een variant willekeurig (50/50) toegewezen. `?debug` toon
 Na afloop (knop **Klaar**) zie je eerst "Jouw resultaat" (aantal sollicitaties, zonder "van de X"). Daarna volgen vijf vragen:
 
 1. Hoeveel vacatures denk je gezien te hebben? ← **de kernmeting**, vergeleken met het echte aantal
-2. Hoe tevreden ben je met het resultaat? (1–5)
+2. Hoe tevreden ben je met je sollicitaties? (1–5)
 3. Hoe luchtig voelde het doorkijken? (1–5)
 4. Hoeveel druk voelde je om per vacature te kiezen? (1–5)
 5. Hoe prettig vond je deze manier? (1–5) + open opmerking
@@ -25,7 +25,7 @@ Na afloop (knop **Klaar**) zie je eerst "Jouw resultaat" (aantal sollicitaties, 
 Er staat bewust **geen teller of voortgangsbalk** in de app, anders zou je de schatting beïnvloeden.
 
 Per sessie wordt vastgelegd: variant, echt aantal gezien, schatting + afwijking, duur, mediane tijd per vacature,
-aantal keer details geopend, bewaard / weggehaald / gesolliciteerd, weergaves van Mijn lijst en de vergelijking,
+aantal keer details geopend, bewaard / weggehaald / gesolliciteerd / ingetrokken (`appliedInitial`, `withdrawn`, `applied`), weergaves van Mijn lijst en de vergelijking,
 swipes links/rechts, de antwoorden en een tijdlijn van alle acties (`events`).
 "Gezien" = in de feed minstens 350 ms ≥60% in beeld; in de swipe-variant elke vacature waarover een keuze is gemaakt.
 
