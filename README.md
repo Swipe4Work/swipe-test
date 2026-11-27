@@ -7,24 +7,25 @@ De app bevat beide varianten, zodat je ze naast elkaar kunt testen:
 
 | Variant | URL | Wat doet de gebruiker? |
 |---|---|---|
-| **Feed** (nieuw) | `?v=feed` | Scrollt door vacatures, veegt interessante kaarten naar rechts = bewaren. Daarna het tabblad *Bewaard*: vergelijken (lijst of tabel, salarisbalken), weghalen, en pas dán bewust solliciteren. |
+| **Feed** (nieuw) | `?v=feed` | Scrollt door vacatures, veegt interessante kaarten naar rechts = bewaren. Daarna het tabblad *Mijn lijst*: vergelijken (lijst of tabel, salarisbalken), weghalen, en pas dán bewust solliciteren. |
 | **Swipe** (huidig) | `?v=swipe` | Links = niet interessant, rechts = "Koffie doen" (direct solliciteren). |
 
 Zonder parameter wordt een variant willekeurig (50/50) toegewezen. `?debug` toont welke variant je hebt.
 
 ## Testopzet
 
-Na afloop (knop **Klaar**) volgen vier vragen:
+Na afloop (knop **Klaar**) zie je eerst "Jouw resultaat" (aantal sollicitaties, zonder "van de X"). Daarna volgen vijf vragen:
 
 1. Hoeveel vacatures denk je gezien te hebben? ← **de kernmeting**, vergeleken met het echte aantal
-2. Hoe luchtig voelde het doorkijken? (1–5)
-3. Hoeveel druk voelde je om per vacature te kiezen? (1–5)
-4. Hoe prettig vond je deze manier? (1–5) + open opmerking
+2. Hoe tevreden ben je met het resultaat? (1–5)
+3. Hoe luchtig voelde het doorkijken? (1–5)
+4. Hoeveel druk voelde je om per vacature te kiezen? (1–5)
+5. Hoe prettig vond je deze manier? (1–5) + open opmerking
 
 Er staat bewust **geen teller of voortgangsbalk** in de app, anders zou je de schatting beïnvloeden.
 
 Per sessie wordt vastgelegd: variant, echt aantal gezien, schatting + afwijking, duur, mediane tijd per vacature,
-aantal keer details geopend, bewaard / weggehaald / gesolliciteerd, weergaves van het bewaard-overzicht en de vergelijking,
+aantal keer details geopend, bewaard / weggehaald / gesolliciteerd, weergaves van Mijn lijst en de vergelijking,
 swipes links/rechts, de antwoorden en een tijdlijn van alle acties (`events`).
 "Gezien" = in de feed minstens 350 ms ≥60% in beeld; in de swipe-variant elke vacature waarover een keuze is gemaakt.
 

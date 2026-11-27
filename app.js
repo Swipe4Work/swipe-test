@@ -113,7 +113,7 @@
     let actions = '';
     if (ctx === 'feed') {
       actions = S.saved.includes(id)
-        ? `<button class="btn btn-ghost" data-close>Sluiten</button><button class="btn" disabled>${I.check.replace(/26/g, '16')} Bewaard</button>`
+        ? `<button class="btn btn-ghost" data-close>Sluiten</button><button class="btn" disabled>${I.check.replace(/26/g, '16')} In je lijst</button>`
         : `<button class="btn btn-ghost" data-close>Sluiten</button><button class="btn btn-yellow" data-sheet="save" data-id="${id}">${I.bookmark.replace(/24/g, '16')} Bewaar</button>`;
     } else if (ctx === 'shortlist') {
       actions = S.applied.has(id)
@@ -243,7 +243,7 @@
         ${feed ? `
         <li><span class="ico">👆</span><span><b>Scroll door de vacatures</b> zoals je door een feed scrolt. Niet interessant? Dan scroll je gewoon verder.</span></li>
         <li><span class="ico">👉</span><span><b>Lijkt er één leuk?</b> Veeg de kaart naar rechts (of tik op het bladwijzer-icoon) om hem te bewaren.</span></li>
-        <li><span class="ico">📋</span><span>Onder <b>Bewaard</b> vergelijk je je bewaarde vacatures en solliciteer je pas als je het zeker weet.</span></li>` : `
+        <li><span class="ico">📋</span><span>In <b>Mijn lijst</b> vergelijk je de vacatures die je bewaard hebt en solliciteer je pas als je het zeker weet.</span></li>` : `
         <li><span class="ico">👈</span><span><b>Veeg naar links</b> als een vacature niet interessant is.</span></li>
         <li><span class="ico">☕</span><span><b>Veeg naar rechts</b> voor “Koffie doen”. Dat betekent dat je direct solliciteert.</span></li>
         <li><span class="ico">📄</span><span>Wil je eerst meer weten? Tik op <b>Lees meer</b> voor alle details.</span></li>`}
@@ -299,13 +299,13 @@
           <div class="card">
             ${cardInner(v, `<button class="save-btn" data-act="save" data-id="${id}" aria-label="Bewaar vacature">${I.bookmark}</button><span class="stamp stamp-yes">Bewaard</span>`)}
           </div>
-          <div class="saved-ph"><span class="tick">${I.check}</span><div><strong>${esc(v.title)}</strong><small>staat onder Bewaard</small></div>
+          <div class="saved-ph"><span class="tick">${I.check}</span><div><strong>${esc(v.title)}</strong><small>staat in je lijst</small></div>
             <button class="link" data-act="undo" data-id="${id}">Ongedaan maken</button></div>
         </section>`;
       }).join('')}
       <section class="slide" data-end="1"><div class="end-card"><h2>Dat waren ze!</h2>
         <p>Je bent aan het einde van de vacatures gekomen.</p>
-        <button class="btn" data-act="to-shortlist">Bekijk je bewaarde vacatures</button>
+        <button class="btn" data-act="to-shortlist">Bekijk je lijst</button>
         <button class="btn btn-ghost" data-act="finish">Klaar</button></div></section>
     </div>
     <div class="coach" id="coach"><span>↑ scroll door</span><span>·</span><span>veeg → om te bewaren</span></div>`;
@@ -391,7 +391,7 @@
     const applyBtn = v => S.applied.has(v.id) ? `<div class="applied">${I.check.replace(/26/g, '16')} Gesolliciteerd</div>`
       : `<button class="btn btn-small" data-act="apply" data-id="${v.id}">Solliciteer</button>`;
 
-    const head = `<div class="sl-head"><h1>Bewaarde vacatures</h1><p>${items.length ? `${items.length} bewaard${items.length > 1 ? 'e vacatures' : 'e vacature'}. Vergelijk ze en solliciteer op wat je écht wilt.` : ''}</p></div>`;
+    const head = `<div class="sl-head"><h1>Mijn lijst</h1><p>${items.length ? `${items.length} bewaard${items.length > 1 ? 'e vacatures' : 'e vacature'}. Vergelijk ze en solliciteer op wat je écht wilt.` : ''}</p></div>`;
     let body;
     if (!items.length) {
       body = `<div class="empty"><div class="emoji">🔖</div><strong>Nog niets bewaard</strong>
@@ -404,7 +404,7 @@
         body = controls + list.map(v => `<article class="item" data-id="${v.id}">
           <div class="item-top"><div class="thumb" style="background-image:url(img/${v.img})"></div>
             <div style="min-width:0"><h3>${esc(v.title)}</h3><p class="loc" style="margin-top:4px">${I.pin}${esc(v.loc)}</p></div>
-            <button class="x" data-act="remove" data-id="${v.id}" aria-label="Verwijder uit bewaard">${I.x}</button></div>
+            <button class="x" data-act="remove" data-id="${v.id}" aria-label="Verwijder uit mijn lijst">${I.x}</button></div>
           ${salBlock(v)}
           <div class="item-meta"><span class="pill">${esc(v.hours)}</span><span class="pill">${esc(v.facts.Opleiding || '')}</span><span class="pill">${esc(v.facts.Ervaring || '')}</span></div>
           <div class="item-actions"><button class="btn btn-ghost btn-small" data-act="details" data-id="${v.id}">Details</button>${applyBtn(v)}</div>
@@ -444,7 +444,7 @@
   }
   function removeFromShortlist(id) {
     unsave(id, 'remove'); renderShortlist();
-    toast('Niet meer bewaard', { label: 'Ongedaan maken', fn: () => resave(id) });
+    toast('Van je lijst gehaald', { label: 'Ongedaan maken', fn: () => resave(id) });
   }
   function confirmApply(id) {
     const v = byId[id];
@@ -542,6 +542,7 @@
       <div><span class="kicker">Bijna klaar</span><h1 style="margin-top:8px">Even terugkijken</h1></div>
       <fieldset><legend>Hoeveel vacatures denk je ongeveer gezien te hebben?</legend>
         <input class="field" type="number" name="estimate" min="0" max="9999" inputmode="numeric" placeholder="Jouw schatting" required></fieldset>
+      <fieldset><legend>Hoe tevreden ben je met jouw resultaat?</legend>${scale('satisfaction', 'Ontevreden', 'Tevreden')}</fieldset>
       <fieldset><legend>Hoe luchtig voelde het doorkijken van vacatures?</legend>${scale('light', 'Zwaar', 'Luchtig')}</fieldset>
       <fieldset><legend>Hoeveel druk voelde je om per vacature een keuze te maken?</legend>${scale('pressure', 'Geen druk', 'Veel druk')}</fieldset>
       <fieldset><legend>Hoe prettig vond je deze manier van vacatures bekijken?</legend>${scale('pleasant', 'Onprettig', 'Prettig')}</fieldset>
@@ -572,11 +573,11 @@
       swipeLeft: S.variant === 'swipe' ? S.decided.filter(d => d.dir === 'l').length : null,
       swipeRight: S.variant === 'swipe' ? S.decided.filter(d => d.dir === 'r').length : null,
       applied: S.applied.size, appliedIds: [...S.applied].join(' '),
-      light: Number(a.light), pressure: Number(a.pressure), pleasant: Number(a.pleasant), comment: (a.comment || '').trim(),
+      satisfaction: Number(a.satisfaction), light: Number(a.light), pressure: Number(a.pressure), pleasant: Number(a.pleasant), comment: (a.comment || '').trim(),
       events: S.events
     };
   }
-  const CSV_COLS = ['pid', 'variant', 'startedAt', 'durationSec', 'vacanciesAvailable', 'seen', 'stoppedEarly', 'seenPctOfAvailable', 'estimate', 'estimateError', 'estimateErrorPct', 'medianMsPerVacancy', 'detailOpens', 'saved', 'removedFromShortlist', 'shortlistViews', 'compareViews', 'swipeLeft', 'swipeRight', 'applied', 'light', 'pressure', 'pleasant', 'comment'];
+  const CSV_COLS = ['pid', 'variant', 'startedAt', 'durationSec', 'vacanciesAvailable', 'seen', 'stoppedEarly', 'seenPctOfAvailable', 'estimate', 'estimateError', 'estimateErrorPct', 'medianMsPerVacancy', 'detailOpens', 'saved', 'removedFromShortlist', 'shortlistViews', 'compareViews', 'swipeLeft', 'swipeRight', 'applied', 'satisfaction', 'light', 'pressure', 'pleasant', 'comment'];
   const toCSV = rows => [CSV_COLS.join(',')].concat(rows.map(r => CSV_COLS.map(c => { const v = r[c] ?? ''; return /[",\n;]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : v; }).join(','))).join('\n');
   function download(name, text, type) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
