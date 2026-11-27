@@ -228,7 +228,11 @@
     const s = screen('intro'); s.classList.add('scroll');
     const feed = S.variant === 'feed';
     s.innerHTML = `<div class="page">
-      <img src="logo.svg" class="intro-logo" alt="Swipe4Work">
+      <div class="switch-row">
+        <img src="logo.svg" class="intro-logo" alt="Swipe4Work">
+        <div class="variant-switch" role="group" aria-label="Testversie"><span class="kicker">Versie</span>
+          <div class="seg"><button data-variant="feed" class="${feed ? 'on' : ''}">Feed</button><button data-variant="swipe" class="${feed ? '' : 'on'}">Swipe</button></div></div>
+      </div>
       <div>
         <span class="kicker">Gebruikerstest</span>
         <h1 style="margin-top:8px">Kijk rustig rond tussen vacatures</h1>
@@ -249,6 +253,13 @@
       <p class="fine">De test is anoniem. We bewaren alleen hoe je met de vacatures omgaat.</p>
     </div>`;
     $('#startBtn').onclick = startTest;
+    $$('[data-variant]', s).forEach(b => b.onclick = () => {
+      if (b.dataset.variant === S.variant) return;
+      S.variant = b.dataset.variant; store.sset('variant', S.variant);
+      try { history.replaceState(null, '', '?v=' + S.variant + (params.has('debug') ? '&debug' : '')); } catch (e) {}
+      const d = $('#debug'); if (!d.hidden) d.textContent = 'variant: ' + S.variant;
+      renderIntro();
+    });
     show('intro');
   }
 
@@ -526,7 +537,7 @@
       shortlistViews: S.shortlistViews, compareViews: S.compareViews,
       swipeLeft: S.variant === 'swipe' ? S.decided.filter(d => d.dir === 'l').length : null,
       swipeRight: S.variant === 'swipe' ? S.decided.filter(d => d.dir === 'r').length : null,
-      applied: S.applied.size,
+      applied: S.applied.size, appliedIds: [...S.applied].join(' '),
       light: Number(a.light), pressure: Number(a.pressure), pleasant: Number(a.pleasant), comment: (a.comment || '').trim(),
       events: S.events
     };
@@ -546,8 +557,17 @@
   function renderThanks(r, all) {
     const s = screen('thanks'); s.classList.add('scroll');
     const json = JSON.stringify(r, null, 2);
+    const ap = [...S.applied].map(id => byId[id]);
+    const other = S.variant === 'feed' ? 'swipe' : 'feed';
     s.innerHTML = `<div class="page">
       <div><span class="kicker">Dankjewel!</span><h1 style="margin-top:8px">Je antwoorden zijn opgeslagen</h1></div>
+      <div class="result-box">
+        <span class="kicker">Jouw inzet</span>
+        <span class="big">${ap.length}</span>
+        <p style="font-weight:700">${ap.length === 1 ? 'sollicitatie' : 'sollicitaties'}${S.variant === 'feed' ? ` · ${S.saved.length} vacature${S.saved.length === 1 ? '' : 's'} bewaard` : ''}</p>
+        <p class="fine">${ap.length ? `Op ${ap.length} van de ${r.seen} vacatures die je zag, heb je gesolliciteerd (test):` : `Je hebt op geen van de ${r.seen} vacatures die je zag gesolliciteerd.`}</p>
+        ${ap.length ? `<ul class="applied-list">${ap.map(v => `<li><b>${esc(v.title)}</b><span>${esc(v.loc)} · ${esc(v.salary)}</span></li>`).join('')}</ul>` : ''}
+      </div>
       <p>Even ter vergelijking: je schatte dat je er <b>${r.estimate}</b> had gezien.</p>
       <div class="pair">
         <div class="result-box"><span class="kicker">Jouw schatting</span><span class="big">${r.estimate}</span></div>
@@ -563,12 +583,14 @@
           <button class="btn btn-small btn-ghost" id="cpJson" type="button">Kopieer</button>
         </div></details>
       <div class="spacer"></div>
+      <button class="btn btn-block btn-yellow" id="otherBtn">Probeer ook de ${other === 'feed' ? 'feed' : 'swipe'}-versie</button>
       <button class="btn btn-block btn-ghost" id="againBtn">Nieuwe sessie starten</button>
     </div>`;
     show('thanks'); topbar.hidden = false; s.scrollTop = 0;
     $('#dlJson').onclick = () => download(`swipe4work-${r.variant}-${r.pid}.json`, json, 'application/json');
     $('#dlCsv').onclick = () => download('swipe4work-resultaten.csv', toCSV(all), 'text/csv');
     $('#cpJson').onclick = () => { $('#jsonBox').select(); try { document.execCommand('copy'); toast('Gekopieerd'); } catch (e) {} };
+    $('#otherBtn').onclick = () => { store.sset('variant', other); location.href = location.pathname + '?v=' + other + (params.has('debug') ? '&debug' : ''); };
     $('#againBtn').onclick = () => { try { sessionStorage.removeItem('variant'); } catch (e) {} if (params.get('v')) location.reload(); else location.href = location.pathname; };
   }
 
